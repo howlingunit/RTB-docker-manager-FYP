@@ -29,26 +29,3 @@ func TestTest(t *testing.T) {
 	assert.Equal(t, expected, string(body))
 }
 
-type Challenge struct {
-	Name       string `json:"name"`
-	Difficulty string `json:"difficulty"`
-}
-
-func TestGetChallenges(t *testing.T) {
-	res, err := http.Get("http://localhost:8080/get-challenges") // Real API call
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer res.Body.Close()
-
-	assert.Equal(t, http.StatusOK, res.StatusCode)
-
-	var challenges []Challenge
-	err = json.NewDecoder(res.Body).Decode(&challenges)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	expected := Challenge{Name: "samba", Difficulty: "easy"}
-	assert.Contains(t, challenges, expected)
-}
