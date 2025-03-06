@@ -26,8 +26,8 @@ jobs:
 
       - name: Start API server
         run: |
-          go run main.go &  # Run in background
-          sleep 3            # Wait for the server to start
+          go run main.go -interface=0.0.0.0 &  # Run in background
+          sleep 10            # Wait for the server to start
 
       - name: Run tests
         run: go test ./tests/
