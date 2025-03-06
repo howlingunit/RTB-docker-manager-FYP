@@ -1,7 +1,6 @@
 package main_test
 
 import (
-	"encoding/json"
 	"io"
 	"net/http"
 	"testing"

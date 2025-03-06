@@ -1,0 +1,36 @@
+name: API Tests
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: 1.21 # Adjust based on your Go version
+
+      - name: Install dependencies
+        run: go mod tidy
+
+      - name: Start API server
+        run: |
+          go run main.go &  # Run in background
+          sleep 3            # Wait for the server to start
+
+      - name: Run tests
+        run: go test ./tests/
+
+      - name: Stop API server
+        run: pkill -f "go run main.go" || true
