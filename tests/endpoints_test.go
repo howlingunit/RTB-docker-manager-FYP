@@ -35,12 +35,13 @@ type Challenge struct {
 }
 
 func TestGetChallenges(t *testing.T) {
-	res, err := http.Get("http://localhost:8080/get-challenges") // Real API call
+	res, err := http.Get("http://localhost:8080/get-challenges")
 	if err != nil {
 		t.Fatal(err)
 	}
 	defer res.Body.Close()
 
+	// Check the status code
 	assert.Equal(t, http.StatusOK, res.StatusCode)
 
 	var challenges []Challenge
@@ -48,7 +49,7 @@ func TestGetChallenges(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-
-	expected := Challenge{Name: "samba", Difficulty: "easy"}
+	// Check the response body
+	expected := Challenge{Name: "sambaCry", Difficulty: "Easy"}
 	assert.Contains(t, challenges, expected)
 }
