@@ -21,10 +21,6 @@ func readChallenges() []ChallengeInfo {
 
 	dir := os.DirFS(challenges)
 
-	// files, err := fs.ReadDir(dir, ".")
-	// if err != nil {
-	// 	log.Fatal(err)
-	// }
 	var ChallengeFiles []string
 
 	fs.WalkDir(dir, ".", func(path string, d fs.DirEntry, err error) error {
@@ -55,6 +51,14 @@ func readChallenges() []ChallengeInfo {
 	}
 
 	return res
+}
+
+func CreateChallenges(c *gin.Context) {
+	c.String(200, "Ran Create Challenges")
+}
+
+func RemoveChallenges(c *gin.Context) {
+	c.String(200, "Ran Remove Challenges")
 }
 
 func GetChallenges(c *gin.Context) {

@@ -20,6 +20,8 @@ func main() {
 
 	router.GET("/test", testGet)
 	router.GET("/get-challenges", challenges.GetChallenges)
+	router.POST("/create-challenges", challenges.CreateChallenges)
+	router.DELETE("/remove-challenges", challenges.RemoveChallenges)
 
 	router.Run(fmt.Sprintf("%s:8080", *inter))
 }
