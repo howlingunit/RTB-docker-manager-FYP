@@ -1,3 +1,2 @@
 FROM vulnerables/web-dvwa
 
-CMD ["tail", "-f", "/dev/null"]

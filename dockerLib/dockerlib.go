@@ -89,29 +89,6 @@ func buildDockerImage(imageTag string, dir string) (string, error) {
 	return fmt.Sprint("Built tag:", imageTag), nil
 }
 
-func RunChallenge(name string, tag string) (string, error) {
-	ctx := context.Background()
-	cli, err := client.NewClientWithOpts(client.FromEnv, client.WithAPIVersionNegotiation())
-	if err != nil {
-		panic(err)
-	}
-	defer cli.Close()
-
-	resp, err := cli.ContainerCreate(ctx, &container.Config{
-		Image:    name,
-		Hostname: name,
-	}, nil, nil, nil, name)
-	if err != nil {
-		return "", fmt.Errorf("failed to create container")
-	}
-
-	if err := cli.ContainerStart(ctx, resp.ID, container.StartOptions{}); err != nil {
-		return "", fmt.Errorf("failed to start container")
-	}
-
-	return fmt.Sprint("running:", name), nil
-}
-
 func createCTFNetwork() (string, error) {
 	cli, err := client.NewClientWithOpts(client.FromEnv)
 	if err != nil {
@@ -171,4 +148,70 @@ func InitDocker() {
 
 	fmt.Println(createCTFNetwork())
 
+}
+
+type RunChallengeRes struct {
+	Name string
+	Flag string
+	Ip   string
+}
+
+func RunChallenge(name string, flag string) (RunChallengeRes, error) {
+	blank := RunChallengeRes{
+		Name: "",
+		Flag: "",
+		Ip:   "",
+	}
+	ctx := context.Background()
+	cli, err := client.NewClientWithOpts(client.FromEnv, client.WithAPIVersionNegotiation())
+	if err != nil {
+		panic(err)
+	}
+	defer cli.Close()
+
+	labels := map[string]string{
+		"type": "Challenge",
+	}
+
+	resp, err := cli.ContainerCreate(ctx, &container.Config{
+		Image:    name,
+		Hostname: name,
+		Labels:   labels,
+	}, &container.HostConfig{
+		NetworkMode: "ctf-network",
+	}, nil, nil, name)
+	if err != nil {
+		return blank, fmt.Errorf("failed to create container")
+	}
+
+	if err := cli.ContainerStart(ctx, resp.ID, container.StartOptions{}); err != nil {
+		return blank, fmt.Errorf("failed to start container")
+	}
+
+	containerInfo, err := cli.ContainerInspect(context.Background(), resp.ID)
+	if err != nil {
+		return blank, fmt.Errorf("failed to inspect container")
+	}
+
+	IP := containerInfo.NetworkSettings.Networks["ctf-network"].IPAddress
+
+	execID, err := cli.ContainerExecCreate(ctx, resp.ID, container.ExecOptions{
+		Cmd: []string{"sh", "-c", fmt.Sprintf("echo %s > /root/flag.txt", flag)},
+	})
+	if err != nil {
+		return blank, fmt.Errorf("failecd to make exec")
+	}
+
+	err = cli.ContainerExecStart(ctx, execID.ID, container.ExecStartOptions{
+		Tty: false,
+	})
+	if err != nil {
+		return blank, fmt.Errorf("failecd to run exec")
+	}
+
+	return RunChallengeRes{
+		Name: name,
+		Flag: flag,
+		Ip:   IP,
+	}, nil
 }

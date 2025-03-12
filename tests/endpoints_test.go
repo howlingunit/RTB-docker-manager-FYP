@@ -84,7 +84,7 @@ func TestCreateChallenges(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	expected := DockerResponse{Name: "sambacry", Flag: "1234", Ip: "172.18.0.1"}
+	expected := DockerResponse{Name: "sambacry", Flag: "1234", Ip: "172.18.0.26a"}
 
 	assert.Contains(t, dockers, expected)
 
