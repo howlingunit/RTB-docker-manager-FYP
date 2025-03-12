@@ -6,6 +6,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/howlingunit/RTB-docker-manager-FYP/challenges"
+	dockerlib "github.com/howlingunit/RTB-docker-manager-FYP/dockerLib"
 )
 
 func testGet(c *gin.Context) {
@@ -15,6 +16,8 @@ func testGet(c *gin.Context) {
 func main() {
 	inter := flag.String("interface", "localhost", "The interface for the api")
 	flag.Parse()
+
+	dockerlib.InitDocker()
 
 	router := gin.Default()
 
