@@ -1,3 +1,2 @@
-FROM vulnerables/vulnerables/web-dvwa
+FROM vulnerables/web-dvwa
 
-COPY ./flag.txt /root

@@ -1,64 +1,51 @@
 package challenges
 
 import (
-	"encoding/json"
 	"fmt"
-	"io/fs"
-	"log"
-	"os"
-	"strings"
 
 	"github.com/gin-gonic/gin"
+	dockerlib "github.com/howlingunit/RTB-docker-manager-FYP/dockerLib"
 )
 
-type ChallengeInfo struct {
-	Name       string `json:"name"`
-	Difficulty string `json:"difficulty"`
+type runChallengeBody struct {
+	Name string `json:"name"`
+	Flag string `json:"flag"`
 }
 
-func readChallenges() []ChallengeInfo {
-	challenges := "./vulnDockers"
+func CreateChallenges(c *gin.Context) {
+	var res []dockerlib.RunChallengeRes
+	var body []runChallengeBody
 
-	dir := os.DirFS(challenges)
-
-	// files, err := fs.ReadDir(dir, ".")
-	// if err != nil {
-	// 	log.Fatal(err)
-	// }
-	var ChallengeFiles []string
-
-	fs.WalkDir(dir, ".", func(path string, d fs.DirEntry, err error) error {
-		if err != nil {
-			log.Fatal(err)
-		}
-		if strings.HasSuffix(path, ".json") {
-			ChallengeFiles = append(ChallengeFiles, path)
-		}
-		return nil
-	})
-
-	var res []ChallengeInfo
-	for i := 0; i < len(ChallengeFiles); i++ {
-		file, err := os.Open(fmt.Sprint("./vulnDockers/", ChallengeFiles[i]))
-		if err != nil {
-			log.Fatal()
-		}
-		defer file.Close()
-
-		var info ChallengeInfo
-		if err := json.NewDecoder(file).Decode(&info); err != nil {
-			log.Fatal()
-		}
-
-		res = append(res, info)
-
+	if err := c.BindJSON(&body); err != nil {
+		c.String(500, "invalid body")
+		return
 	}
 
-	return res
+	for i := range body {
+		ranChallenge, err := dockerlib.RunChallenge(body[i].Name, body[i].Flag)
+		if err != nil {
+			c.String(500, fmt.Sprint("error creating challenge", err))
+		}
+		res = append(res, dockerlib.RunChallengeRes{
+			Name: ranChallenge.Name,
+			Flag: ranChallenge.Flag,
+			Ip:   ranChallenge.Ip,
+		})
+	}
+
+	c.JSON(200, res)
+}
+
+func RemoveChallenges(c *gin.Context) {
+	if err := dockerlib.RemoveChallenges(); err != nil {
+		c.String(500, fmt.Sprint("Failed due to:", err))
+	}
+
+	c.String(200, "Removed Challenges")
 }
 
 func GetChallenges(c *gin.Context) {
-	challenges := readChallenges()
+	challenges := dockerlib.ReadChallenges()
 
 	c.IndentedJSON(200, challenges)
 
