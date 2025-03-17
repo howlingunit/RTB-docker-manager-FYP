@@ -215,3 +215,46 @@ func RunChallenge(name string, flag string) (RunChallengeRes, error) {
 		Ip:   IP,
 	}, nil
 }
+
+func RemoveChallenges() error {
+	ctx := context.Background()
+
+	cli, err := client.NewClientWithOpts(client.FromEnv, client.WithAPIVersionNegotiation())
+	if err != nil {
+		panic(err)
+	}
+	defer cli.Close()
+
+	// list docker containers
+
+	containers, err := cli.ContainerList(context.Background(), container.ListOptions{})
+	if err != nil {
+		panic(err)
+	}
+
+	// seperate out challenges
+	var challenges []container.Summary
+
+	for i := 0; i < len(containers); i++ {
+		if containers[i].Labels["type"] == "Challenge" {
+			challenges = append(challenges, containers[i])
+		}
+	}
+
+	// kill challenges
+	for i := 0; i < len(challenges); i++ {
+		if challenges[i].State == "running" {
+			if err := cli.ContainerStop(ctx, challenges[i].ID, container.StopOptions{}); err != nil {
+				return err
+			}
+		}
+	}
+	// rm challenges
+
+	for i := 0; i < len(challenges); i++ {
+		if err := cli.ContainerRemove(ctx, challenges[i].ID, container.RemoveOptions{}); err != nil {
+			return err
+		}
+	}
+	return nil
+}

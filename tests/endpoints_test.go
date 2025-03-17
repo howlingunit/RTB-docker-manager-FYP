@@ -51,7 +51,7 @@ func TestGetChallenges(t *testing.T) {
 		t.Fatal(err)
 	}
 	// Check the response body
-	expected := Challenge{Name: "sambaCry", Difficulty: "Easy"}
+	expected := Challenge{Name: "sambacry", Difficulty: "Easy"}
 	assert.Contains(t, challenges, expected)
 }
 
@@ -62,7 +62,7 @@ type DockerResponse struct {
 }
 
 func TestCreateChallenges(t *testing.T) {
-	data := `[{"name":"sambaCry", "flag":"1234"},{"name":"dvwa","flag":"1234"}]` // JSON body as a string
+	data := `[{"name":"sambacry", "flag":"1234"},{"name":"dvwa","flag":"1234"}]` // JSON body as a string
 	req, err := http.NewRequest("POST", "http://localhost:8080/create-challenges", strings.NewReader(data))
 	if err != nil {
 		t.Fatal(err)
@@ -84,7 +84,7 @@ func TestCreateChallenges(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	expected := DockerResponse{Name: "sambacry", Flag: "1234", Ip: "172.18.0.26a"}
+	expected := DockerResponse{Name: "sambacry", Flag: "1234", Ip: "172.18.0.2"}
 
 	assert.Contains(t, dockers, expected)
 
@@ -105,5 +105,5 @@ func TestRemoveChallenges(t *testing.T) {
 
 	assert.Equal(t, http.StatusOK, res.StatusCode)
 
-	assert.Equal(t, "OK", res.Body)
+	assert.Equal(t, "Removed Challenges", res.Body)
 }

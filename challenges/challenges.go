@@ -37,7 +37,11 @@ func CreateChallenges(c *gin.Context) {
 }
 
 func RemoveChallenges(c *gin.Context) {
-	c.String(200, "Ran Remove Challenges")
+	if err := dockerlib.RemoveChallenges(); err != nil {
+		c.String(500, fmt.Sprint("Failed due to:", err))
+	}
+
+	c.String(200, "Removed Challenges")
 }
 
 func GetChallenges(c *gin.Context) {
