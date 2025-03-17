@@ -28,6 +28,12 @@ jobs:
       - name: Install dependencies
         run: go mod tidy
 
+      - name: Give Docker permissions
+        run: |
+          sudo usermod -aG docker $USER
+          newgrp docker
+
+
       - name: Start API server
         run: |
           go run main.go -interface=0.0.0.0 &  # Run in background
