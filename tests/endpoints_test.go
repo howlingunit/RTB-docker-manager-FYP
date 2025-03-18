@@ -2,6 +2,7 @@ package main_test
 
 import (
 	"encoding/json"
+	"fmt"
 	"io"
 	"net/http"
 	"strings"
@@ -106,4 +107,66 @@ func TestRemoveChallenges(t *testing.T) {
 	assert.Equal(t, http.StatusOK, res.StatusCode)
 
 	assert.Equal(t, "Removed Challenges", res.Body)
+}
+
+type CreatePlatformResponse struct {
+	User string `json:"flag"`
+	Ip   string `json:"ip"`
+}
+
+func TestCreatePlatforms(t *testing.T) {
+	data := `["1234", "5678"]`
+	req, err := http.NewRequest("POST", "http://localhost:8080/create-platforms", strings.NewReader(data))
+	if err != nil {
+		t.Fatal(err)
+	}
+	req.Header.Set("Content-Type", "application/json")
+
+	client := &http.Client{}
+	res, err := client.Do(req)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer res.Body.Close()
+
+	assert.Equal(t, http.StatusOK, res.StatusCode)
+
+	var platforms []CreatePlatformResponse
+	err = json.NewDecoder(res.Body).Decode(&platforms)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	expected := []CreatePlatformResponse{
+		{User: "1234", Ip: "172.18.0.3"},
+		{User: "1234", Ip: "172.18.0.4"},
+	}
+
+	assert.Contains(t, platforms, expected)
+}
+
+type GetPlatformResponse struct {
+	User string `json:"user"`
+	Ip   string `json:"ip"`
+}
+
+func TestGetPlatform(t *testing.T) {
+	userId := "1234"
+	res, err := http.Get(fmt.Sprint("http://localhost:8080/get-platform/", userId))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer res.Body.Close()
+
+	// Check the status code
+	assert.Equal(t, http.StatusOK, res.StatusCode)
+
+	var platform []GetPlatformResponse
+	err = json.NewDecoder(res.Body).Decode(&platform)
+	if err != nil {
+		t.Fatal(err)
+	}
+	// Check the response body
+	expected := GetPlatformResponse{User: "1234", Ip: "172.18.0.3"}
+	assert.Contains(t, platform, expected)
 }
