@@ -144,6 +144,9 @@ func InitDocker() {
 		fmt.Println(buildDockerImage(challengeData[i].Name, fmt.Sprint("./vulnDockers/", challengeFolders[i], "/.")))
 	}
 
+	// build platform
+	fmt.Println(buildDockerImage("plat", "./platformDocker/."))
+
 	// create the network
 
 	fmt.Println(createCTFNetwork())
@@ -257,4 +260,41 @@ func RemoveChallenges() error {
 		}
 	}
 	return nil
+}
+
+func RunPlatform(user string) (string, error) {
+	ctx := context.Background()
+	cli, err := client.NewClientWithOpts(client.FromEnv, client.WithAPIVersionNegotiation())
+	if err != nil {
+		panic(err)
+	}
+	defer cli.Close()
+
+	labels := map[string]string{
+		"type": "platform",
+	}
+
+	resp, err := cli.ContainerCreate(ctx, &container.Config{
+		Image:    "plat",
+		Hostname: user,
+		Labels:   labels,
+	}, &container.HostConfig{
+		NetworkMode: "ctf-network",
+	}, nil, nil, user)
+	if err != nil {
+		return "", fmt.Errorf("failed to create container")
+	}
+
+	if err := cli.ContainerStart(ctx, resp.ID, container.StartOptions{}); err != nil {
+		return "", fmt.Errorf("failed to start container")
+	}
+
+	containerInfo, err := cli.ContainerInspect(context.Background(), resp.ID)
+	if err != nil {
+		return "", fmt.Errorf("failed to inspect container")
+	}
+
+	IP := containerInfo.NetworkSettings.Networks["ctf-network"].IPAddress
+
+	return IP, nil
 }

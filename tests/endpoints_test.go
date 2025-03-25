@@ -110,7 +110,7 @@ func TestRemoveChallenges(t *testing.T) {
 }
 
 type CreatePlatformResponse struct {
-	User string `json:"flag"`
+	User string `json:"user"`
 	Ip   string `json:"ip"`
 }
 
