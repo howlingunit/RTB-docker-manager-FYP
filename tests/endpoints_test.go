@@ -139,7 +139,7 @@ func TestCreatePlatforms(t *testing.T) {
 
 	expected := []CreatePlatformResponse{
 		{User: "1234", Ip: "172.18.0.3"},
-		{User: "1234", Ip: "172.18.0.4"},
+		{User: "5678", Ip: "172.18.0.4"},
 	}
 
 	assert.Contains(t, platforms, expected)
@@ -169,4 +169,22 @@ func TestGetPlatform(t *testing.T) {
 	// Check the response body
 	expected := GetPlatformResponse{User: "1234", Ip: "172.18.0.3"}
 	assert.Contains(t, platform, expected)
+}
+
+func TestRemovePlatforms(t *testing.T) {
+	req, err := http.NewRequest("DELETE", "http://localhost:8080/remove-platforms", strings.NewReader(""))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	client := &http.Client{}
+	res, err := client.Do(req)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer res.Body.Close()
+
+	assert.Equal(t, http.StatusOK, res.StatusCode)
+
+	assert.Equal(t, "Removed Platforms", res.Body)
 }

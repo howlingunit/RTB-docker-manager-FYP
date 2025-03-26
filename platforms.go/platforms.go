@@ -31,3 +31,11 @@ func CreatePlatforms(c *gin.Context) {
 
 	c.JSON(200, res)
 }
+
+func RemovePlatforms(c *gin.Context) {
+	if err := dockerlib.RemoveContainers("Platform"); err != nil {
+		c.String(500, fmt.Sprint("Failed due to:", err))
+	}
+
+	c.String(200, "Removed Platforms")
+}

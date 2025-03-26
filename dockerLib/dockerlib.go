@@ -219,7 +219,7 @@ func RunChallenge(name string, flag string) (RunChallengeRes, error) {
 	}, nil
 }
 
-func RemoveChallenges() error {
+func RemoveContainers(ctype string) error {
 	ctx := context.Background()
 
 	cli, err := client.NewClientWithOpts(client.FromEnv, client.WithAPIVersionNegotiation())
@@ -230,32 +230,32 @@ func RemoveChallenges() error {
 
 	// list docker containers
 
-	containers, err := cli.ContainerList(context.Background(), container.ListOptions{})
+	allContainers, err := cli.ContainerList(context.Background(), container.ListOptions{All: true})
 	if err != nil {
 		panic(err)
 	}
 
 	// seperate out challenges
-	var challenges []container.Summary
+	var containers []container.Summary
 
-	for i := 0; i < len(containers); i++ {
-		if containers[i].Labels["type"] == "Challenge" {
-			challenges = append(challenges, containers[i])
+	for i := 0; i < len(allContainers); i++ {
+		if allContainers[i].Labels["type"] == ctype {
+			containers = append(containers, allContainers[i])
 		}
 	}
 
 	// kill challenges
-	for i := 0; i < len(challenges); i++ {
-		if challenges[i].State == "running" {
-			if err := cli.ContainerStop(ctx, challenges[i].ID, container.StopOptions{}); err != nil {
+	for i := 0; i < len(containers); i++ {
+		if containers[i].State == "running" {
+			if err := cli.ContainerStop(ctx, containers[i].ID, container.StopOptions{}); err != nil {
 				return err
 			}
 		}
 	}
 	// rm challenges
 
-	for i := 0; i < len(challenges); i++ {
-		if err := cli.ContainerRemove(ctx, challenges[i].ID, container.RemoveOptions{}); err != nil {
+	for i := 0; i < len(containers); i++ {
+		if err := cli.ContainerRemove(ctx, containers[i].ID, container.RemoveOptions{}); err != nil {
 			return err
 		}
 	}
@@ -271,7 +271,7 @@ func RunPlatform(user string) (string, error) {
 	defer cli.Close()
 
 	labels := map[string]string{
-		"type": "platform",
+		"type": "Platform",
 	}
 
 	resp, err := cli.ContainerCreate(ctx, &container.Config{

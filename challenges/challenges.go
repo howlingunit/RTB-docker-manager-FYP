@@ -25,6 +25,7 @@ func CreateChallenges(c *gin.Context) {
 		ranChallenge, err := dockerlib.RunChallenge(body[i].Name, body[i].Flag)
 		if err != nil {
 			c.String(500, fmt.Sprint("error creating challenge", err))
+			return
 		}
 		res = append(res, dockerlib.RunChallengeRes{
 			Name: ranChallenge.Name,
@@ -37,7 +38,7 @@ func CreateChallenges(c *gin.Context) {
 }
 
 func RemoveChallenges(c *gin.Context) {
-	if err := dockerlib.RemoveChallenges(); err != nil {
+	if err := dockerlib.RemoveContainers("Challenge"); err != nil {
 		c.String(500, fmt.Sprint("Failed due to:", err))
 	}
 

@@ -27,6 +27,7 @@ func main() {
 	router.POST("/create-challenges", challenges.CreateChallenges)
 	router.POST("/create-platforms", platforms.CreatePlatforms)
 	router.DELETE("/remove-challenges", challenges.RemoveChallenges)
+	router.DELETE("/remove-platforms", platforms.RemovePlatforms)
 
 	router.Run(fmt.Sprintf("%s:8080", *inter))
 }
