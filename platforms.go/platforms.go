@@ -32,6 +32,23 @@ func CreatePlatforms(c *gin.Context) {
 	c.JSON(200, res)
 }
 
+type GetPlatformResponse struct {
+	User string `json:"user"`
+	Ip   string `json:"ip"`
+}
+
+func GetPlatform(c *gin.Context) {
+	user := c.Param("user")
+
+	res, err := dockerlib.DockerInfo("Platform", user)
+	if err != nil {
+		c.String(500, fmt.Sprint("could not get platform error:", err))
+		return
+	}
+	c.JSON(200, res)
+
+}
+
 func RemovePlatforms(c *gin.Context) {
 	if err := dockerlib.RemoveContainers("Platform"); err != nil {
 		c.String(500, fmt.Sprint("Failed due to:", err))

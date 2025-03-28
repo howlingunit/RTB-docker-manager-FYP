@@ -58,13 +58,47 @@ func ReadChallenges() []ChallengeInfo {
 	return res
 }
 
-func buildDockerImage(imageTag string, dir string) (string, error) {
+func DockerInfo(ctype string, name string) (string, error) {
 	cli, err := client.NewClientWithOpts(client.FromEnv)
 	if err != nil {
 		return "", fmt.Errorf("failed to create Docker client: %w", err)
 	}
 	defer cli.Close()
 
+	// ctx := context.Background()
+
+	containers, err := cli.ContainerList(context.Background(), container.ListOptions{})
+	if err != nil {
+		return "", fmt.Errorf("could not get containers: %w", err)
+	}
+
+	var conatiner container.Summary
+
+	for i := 0; i < len(containers); i++ {
+		if containers[i].Labels["type"] == ctype && containers[i].Names[0] == name {
+			conatiner = containers[i]
+		}
+	}
+
+	if conatiner.ID == "" {
+		return "", fmt.Errorf("no container with that name or type")
+	}
+
+	fmt.Println(conatiner)
+	ip := "hi"
+	// ip := container.NetworkSettings.Networks["ctf-network"].IPAddress
+
+	return ip, nil
+
+}
+
+func buildDockerImage(imageTag string, dir string) (string, error) {
+	cli, err := client.NewClientWithOpts(client.FromEnv)
+	if err != nil {
+		return "", fmt.Errorf("failed to create Docker client: %w", err)
+	}
+	defer cli.Close()
+	fmt.Println(dir)
 	ctx := context.Background()
 	buildContext, err := archive.TarWithOptions(dir, &archive.TarOptions{})
 	if err != nil {
@@ -86,7 +120,9 @@ func buildDockerImage(imageTag string, dir string) (string, error) {
 	if err != nil {
 		return "", fmt.Errorf("failed to read build response: %w", err)
 	}
+
 	return fmt.Sprint("Built tag:", imageTag), nil
+
 }
 
 func createCTFNetwork() (string, error) {
@@ -140,7 +176,6 @@ func InitDocker() {
 	// now build the containers!
 
 	for i := 0; i < len(challengeFolders); i++ {
-
 		fmt.Println(buildDockerImage(challengeData[i].Name, fmt.Sprint("./vulnDockers/", challengeFolders[i], "/.")))
 	}
 

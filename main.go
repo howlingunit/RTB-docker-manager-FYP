@@ -24,6 +24,7 @@ func main() {
 
 	router.GET("/test", testGet)
 	router.GET("/get-challenges", challenges.GetChallenges)
+	router.GET("/get-platform/:name", platforms.GetPlatform)
 	router.POST("/create-challenges", challenges.CreateChallenges)
 	router.POST("/create-platforms", platforms.CreatePlatforms)
 	router.DELETE("/remove-challenges", challenges.RemoveChallenges)
