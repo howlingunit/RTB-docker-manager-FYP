@@ -75,7 +75,7 @@ func DockerInfo(ctype string, name string) (string, error) {
 	var conatiner container.Summary
 
 	for i := 0; i < len(containers); i++ {
-		if containers[i].Labels["type"] == ctype && containers[i].Names[0] == name {
+		if containers[i].Labels["type"] == ctype && containers[i].Names[0] == fmt.Sprint("/", name) {
 			conatiner = containers[i]
 		}
 	}
@@ -84,9 +84,8 @@ func DockerInfo(ctype string, name string) (string, error) {
 		return "", fmt.Errorf("no container with that name or type")
 	}
 
-	fmt.Println(conatiner)
-	ip := "hi"
-	// ip := container.NetworkSettings.Networks["ctf-network"].IPAddress
+	fmt.Println(conatiner.NetworkSettings.Networks["ctf-network"].IPAddress)
+	ip := conatiner.NetworkSettings.Networks["ctf-network"].IPAddress
 
 	return ip, nil
 
