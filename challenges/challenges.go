@@ -8,8 +8,9 @@ import (
 )
 
 type runChallengeBody struct {
-	Name string `json:"name"`
-	Flag string `json:"flag"`
+	Name      string `json:"name"`
+	Challenge string `json:"challenge"`
+	Flag      string `json:"flag"`
 }
 
 func CreateChallenges(c *gin.Context) {
@@ -22,7 +23,7 @@ func CreateChallenges(c *gin.Context) {
 	}
 
 	for i := range body {
-		ranChallenge, err := dockerlib.RunChallenge(body[i].Name, body[i].Flag)
+		ranChallenge, err := dockerlib.RunChallenge(body[i].Name, body[i].Challenge, body[i].Flag)
 		if err != nil {
 			c.String(500, fmt.Sprint("error creating challenge", err))
 			return

@@ -188,12 +188,13 @@ func InitDocker() {
 }
 
 type RunChallengeRes struct {
-	Name string
-	Flag string
-	Ip   string
+	Name      string
+	Challenge string
+	Flag      string
+	Ip        string
 }
 
-func RunChallenge(name string, flag string) (RunChallengeRes, error) {
+func RunChallenge(name string, challenge string, flag string) (RunChallengeRes, error) {
 	blank := RunChallengeRes{
 		Name: "",
 		Flag: "",
@@ -211,7 +212,7 @@ func RunChallenge(name string, flag string) (RunChallengeRes, error) {
 	}
 
 	resp, err := cli.ContainerCreate(ctx, &container.Config{
-		Image:    name,
+		Image:    challenge,
 		Hostname: name,
 		Labels:   labels,
 	}, &container.HostConfig{
@@ -247,9 +248,10 @@ func RunChallenge(name string, flag string) (RunChallengeRes, error) {
 	}
 
 	return RunChallengeRes{
-		Name: name,
-		Flag: flag,
-		Ip:   IP,
+		Name:      name,
+		Challenge: challenge,
+		Flag:      flag,
+		Ip:        IP,
 	}, nil
 }
 
