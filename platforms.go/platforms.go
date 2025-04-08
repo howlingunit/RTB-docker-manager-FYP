@@ -50,9 +50,11 @@ func GetPlatform(c *gin.Context) {
 }
 
 func RemovePlatforms(c *gin.Context) {
-	if err := dockerlib.RemoveContainers("Platform"); err != nil {
+	res, err := dockerlib.RemoveContainers("Platform")
+
+	if err != nil {
 		c.String(500, fmt.Sprint("Failed due to:", err))
 	}
 
-	c.String(200, "Removed Platforms")
+	c.JSON(200, res)
 }

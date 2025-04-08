@@ -255,9 +255,15 @@ func RunChallenge(name string, challenge string, flag string) (RunChallengeRes, 
 	}, nil
 }
 
-func RemoveContainers(ctype string) error {
-	ctx := context.Background()
+type RemoveChallengeRes struct {
+	Name string
+	Ip   string
+	Type string
+}
 
+func RemoveContainers(ctype string) ([]RemoveChallengeRes, error) {
+	ctx := context.Background()
+	var res []RemoveChallengeRes
 	cli, err := client.NewClientWithOpts(client.FromEnv, client.WithAPIVersionNegotiation())
 	if err != nil {
 		panic(err)
@@ -281,21 +287,28 @@ func RemoveContainers(ctype string) error {
 	}
 
 	// kill challenges
+	timeout := 0
 	for i := 0; i < len(containers); i++ {
 		if containers[i].State == "running" {
-			if err := cli.ContainerStop(ctx, containers[i].ID, container.StopOptions{}); err != nil {
-				return err
+			if err := cli.ContainerStop(ctx, containers[i].ID, container.StopOptions{Timeout: &timeout}); err != nil {
+				return nil, err
 			}
 		}
 	}
 	// rm challenges
 
 	for i := 0; i < len(containers); i++ {
+		name := containers[i].Names[0]
+		res = append(res, RemoveChallengeRes{
+			Name: name[1:], // removes leading /
+			Ip:   containers[i].NetworkSettings.Networks["ctf-network"].IPAddress,
+			Type: ctype,
+		})
 		if err := cli.ContainerRemove(ctx, containers[i].ID, container.RemoveOptions{}); err != nil {
-			return err
+			return nil, err
 		}
 	}
-	return nil
+	return res, nil
 }
 
 func RunPlatform(user string) (string, error) {

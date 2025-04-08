@@ -39,11 +39,12 @@ func CreateChallenges(c *gin.Context) {
 }
 
 func RemoveChallenges(c *gin.Context) {
-	if err := dockerlib.RemoveContainers("Challenge"); err != nil {
+	res, err := dockerlib.RemoveContainers("Challenge")
+	if err != nil {
 		c.String(500, fmt.Sprint("Failed due to:", err))
 	}
 
-	c.String(200, "Removed Challenges")
+	c.JSON(200, res)
 }
 
 func GetChallenges(c *gin.Context) {
