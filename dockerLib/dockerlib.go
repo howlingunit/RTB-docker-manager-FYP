@@ -134,7 +134,6 @@ func createCTFNetwork(team string, nType string) (string, error) {
 
 	ctx := context.Background()
 	netName := team
-	fmt.Println(netName)
 
 	networks, err := cli.NetworkList(ctx, network.ListOptions{})
 	if err != nil {
@@ -323,9 +322,7 @@ func RemoveContainers(ctype string, team string) ([]RemoveChallengeRes, error) {
 	return res, nil
 }
 
-
 func RemoveNetwork(team string) ([]string, error) {
-	// this function does not work
 	var res []string
 	ctx := context.Background()
 	cli, err := client.NewClientWithOpts(client.FromEnv, client.WithAPIVersionNegotiation())
@@ -336,17 +333,15 @@ func RemoveNetwork(team string) ([]string, error) {
 
 	// list networks
 	args := filters.NewArgs()
-	args.Add("label", "challenge")
+	args.Add("label", "type=challenge")
 	args.Add("name", team)
 
 	networks, err := cli.NetworkList(ctx, network.ListOptions{
 		Filters: args,
-	}) // this always returns blank!
-	if err != nil { // problem for later!
+	})
+	if err != nil {
 		return nil, fmt.Errorf("failed to get networks: %w", err)
 	}
-
-	fmt.Println(fmt.Sprint("found network:", networks[0]))
 
 	for i := 0; i < len(networks); i++ {
 		if err := cli.NetworkRemove(ctx, networks[i].ID); err != nil {
