@@ -12,8 +12,13 @@ type CreatePlatformResponse struct {
 	Ip   string `json:"ip"`
 }
 
+type UsersReq struct {
+	User string `json:"user"`
+	Team string `json:"team"`
+}
+
 func CreatePlatforms(c *gin.Context) {
-	var users []string
+	var users []UsersReq
 	var res []CreatePlatformResponse
 
 	if err := c.BindJSON(&users); err != nil {
@@ -21,12 +26,12 @@ func CreatePlatforms(c *gin.Context) {
 	}
 
 	for i := range users {
-		runPlatform, err := dockerlib.RunPlatform(users[i])
+		runPlatform, err := dockerlib.RunPlatform(users[i].User, users[i].Team)
 		if err != nil {
 			c.String(500, fmt.Sprint("error creating platform", err))
 		}
 
-		res = append(res, CreatePlatformResponse{User: users[i], Ip: runPlatform})
+		res = append(res, CreatePlatformResponse{User: users[i].User, Ip: runPlatform})
 	}
 
 	c.JSON(200, res)
@@ -50,7 +55,8 @@ func GetPlatform(c *gin.Context) {
 }
 
 func RemovePlatforms(c *gin.Context) {
-	res, err := dockerlib.RemoveContainers("Platform")
+	team := c.Param("team")
+	res, err := dockerlib.RemoveContainers("Platform", team)
 
 	if err != nil {
 		c.String(500, fmt.Sprint("Failed due to:", err))

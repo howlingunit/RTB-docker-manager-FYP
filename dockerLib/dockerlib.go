@@ -11,6 +11,7 @@ import (
 
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/container"
+	"github.com/docker/docker/api/types/filters"
 	"github.com/docker/docker/api/types/network"
 	"github.com/docker/docker/client"
 	"github.com/docker/docker/pkg/archive"
@@ -124,7 +125,7 @@ func buildDockerImage(imageTag string, dir string) (string, error) {
 
 }
 
-func createCTFNetwork() (string, error) {
+func createCTFNetwork(team string, nType string) (string, error) {
 	cli, err := client.NewClientWithOpts(client.FromEnv)
 	if err != nil {
 		return "", fmt.Errorf("failed to create Docker client: %w", err)
@@ -132,7 +133,8 @@ func createCTFNetwork() (string, error) {
 	defer cli.Close()
 
 	ctx := context.Background()
-	netName := "ctf-network"
+	netName := team
+	fmt.Println(netName)
 
 	networks, err := cli.NetworkList(ctx, network.ListOptions{})
 	if err != nil {
@@ -142,18 +144,24 @@ func createCTFNetwork() (string, error) {
 	// Return existing network ID if already created
 	for _, net := range networks {
 		if net.Name == netName {
-			return net.ID, nil
+			return net.Name, nil
 		}
 	}
 
-	resp, err := cli.NetworkCreate(ctx, netName, network.CreateOptions{
-		Driver: "bridge",
-	})
-	if err != nil {
-		return "", fmt.Errorf("failed to create network: %w", err)
+	labels := map[string]string{
+		"type": nType,
 	}
 
-	return fmt.Sprint("Network:", resp.ID), nil
+	if _, err := cli.NetworkCreate(ctx, netName, network.CreateOptions{
+		Driver: "bridge",
+		Labels: labels,
+	}); err != nil {
+		return "", fmt.Errorf("failed to create network: %w", err)
+
+	}
+	fmt.Println(netName)
+
+	return netName, nil
 }
 
 func InitDocker() {
@@ -183,20 +191,19 @@ func InitDocker() {
 
 	// create the network
 
-	fmt.Println(createCTFNetwork())
-
 }
 
 type RunChallengeRes struct {
-	Name      string
-	Challenge string
-	Flag      string
-	Ip        string
+	Name string
+	Team string
+	Flag string
+	Ip   string
 }
 
-func RunChallenge(name string, challenge string, flag string) (RunChallengeRes, error) {
+func RunChallenge(name string, team string, challenge string, flag string) (RunChallengeRes, error) {
 	blank := RunChallengeRes{
 		Name: "",
+		Team: "",
 		Flag: "",
 		Ip:   "",
 	}
@@ -209,6 +216,12 @@ func RunChallenge(name string, challenge string, flag string) (RunChallengeRes, 
 
 	labels := map[string]string{
 		"type": "Challenge",
+		"team": team,
+	}
+
+	network, err := createCTFNetwork(team, "challenge")
+	if err != nil {
+		return blank, fmt.Errorf("failed to create docker netork", err)
 	}
 
 	resp, err := cli.ContainerCreate(ctx, &container.Config{
@@ -216,22 +229,21 @@ func RunChallenge(name string, challenge string, flag string) (RunChallengeRes, 
 		Hostname: name,
 		Labels:   labels,
 	}, &container.HostConfig{
-		NetworkMode: "ctf-network",
+		NetworkMode: container.NetworkMode(network),
 	}, nil, nil, name)
 	if err != nil {
 		return blank, fmt.Errorf("failed to create container")
 	}
 
 	if err := cli.ContainerStart(ctx, resp.ID, container.StartOptions{}); err != nil {
-		return blank, fmt.Errorf("failed to start container")
+		return blank, fmt.Errorf("failed to start container", err)
 	}
 
 	containerInfo, err := cli.ContainerInspect(context.Background(), resp.ID)
 	if err != nil {
 		return blank, fmt.Errorf("failed to inspect container")
 	}
-
-	IP := containerInfo.NetworkSettings.Networks["ctf-network"].IPAddress
+	IP := containerInfo.NetworkSettings.Networks[network].IPAddress
 
 	execID, err := cli.ContainerExecCreate(ctx, resp.ID, container.ExecOptions{
 		Cmd: []string{"sh", "-c", fmt.Sprintf("echo %s > /root/flag.txt", flag)},
@@ -248,20 +260,20 @@ func RunChallenge(name string, challenge string, flag string) (RunChallengeRes, 
 	}
 
 	return RunChallengeRes{
-		Name:      name,
-		Challenge: challenge,
-		Flag:      flag,
-		Ip:        IP,
+		Name: name,
+		Team: team,
+		Flag: flag,
+		Ip:   IP,
 	}, nil
 }
 
 type RemoveChallengeRes struct {
 	Name string
-	Ip   string
+	Team string
 	Type string
 }
 
-func RemoveContainers(ctype string) ([]RemoveChallengeRes, error) {
+func RemoveContainers(ctype string, team string) ([]RemoveChallengeRes, error) {
 	ctx := context.Background()
 	var res []RemoveChallengeRes
 	cli, err := client.NewClientWithOpts(client.FromEnv, client.WithAPIVersionNegotiation())
@@ -281,7 +293,7 @@ func RemoveContainers(ctype string) ([]RemoveChallengeRes, error) {
 	var containers []container.Summary
 
 	for i := 0; i < len(allContainers); i++ {
-		if allContainers[i].Labels["type"] == ctype {
+		if allContainers[i].Labels["type"] == ctype && allContainers[i].Labels["team"] == team {
 			containers = append(containers, allContainers[i])
 		}
 	}
@@ -301,7 +313,7 @@ func RemoveContainers(ctype string) ([]RemoveChallengeRes, error) {
 		name := containers[i].Names[0]
 		res = append(res, RemoveChallengeRes{
 			Name: name[1:], // removes leading /
-			Ip:   containers[i].NetworkSettings.Networks["ctf-network"].IPAddress,
+			Team: team,
 			Type: ctype,
 		})
 		if err := cli.ContainerRemove(ctx, containers[i].ID, container.RemoveOptions{}); err != nil {
@@ -311,7 +323,43 @@ func RemoveContainers(ctype string) ([]RemoveChallengeRes, error) {
 	return res, nil
 }
 
-func RunPlatform(user string) (string, error) {
+
+func RemoveNetwork(team string) ([]string, error) {
+	// this function does not work
+	var res []string
+	ctx := context.Background()
+	cli, err := client.NewClientWithOpts(client.FromEnv, client.WithAPIVersionNegotiation())
+	if err != nil {
+		panic(err)
+	}
+	defer cli.Close()
+
+	// list networks
+	args := filters.NewArgs()
+	args.Add("label", "challenge")
+	args.Add("name", team)
+
+	networks, err := cli.NetworkList(ctx, network.ListOptions{
+		Filters: args,
+	}) // this always returns blank!
+	if err != nil { // problem for later!
+		return nil, fmt.Errorf("failed to get networks: %w", err)
+	}
+
+	fmt.Println(fmt.Sprint("found network:", networks[0]))
+
+	for i := 0; i < len(networks); i++ {
+		if err := cli.NetworkRemove(ctx, networks[i].ID); err != nil {
+			return nil, err
+		}
+		res = append(res, networks[i].Name)
+	}
+
+	return res, nil
+
+}
+
+func RunPlatform(user string, team string) (string, error) {
 	ctx := context.Background()
 	cli, err := client.NewClientWithOpts(client.FromEnv, client.WithAPIVersionNegotiation())
 	if err != nil {
@@ -328,7 +376,7 @@ func RunPlatform(user string) (string, error) {
 		Hostname: user,
 		Labels:   labels,
 	}, &container.HostConfig{
-		NetworkMode: "ctf-network",
+		NetworkMode: container.NetworkMode(team),
 	}, nil, nil, user)
 	if err != nil {
 		return "", fmt.Errorf("failed to create container")
@@ -343,7 +391,7 @@ func RunPlatform(user string) (string, error) {
 		return "", fmt.Errorf("failed to inspect container")
 	}
 
-	IP := containerInfo.NetworkSettings.Networks["ctf-network"].IPAddress
+	IP := containerInfo.NetworkSettings.Networks[team].IPAddress
 
 	return IP, nil
 }
